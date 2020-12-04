@@ -15,11 +15,17 @@ def pred_log(logreg, X_train, y_train, X_test, flag=False):
     :param X_train: Training set samples
     :param y_train: Training set labels 
     :param X_test: Testing set samples
-    :param flag: A boolean determining whether to return the predicted he probabilities of the classes (relevant after Q11)
+    :param flag: A boolean determining whether to return the predicted probabilities of the classes (relevant after Q11)
     :return: A two elements tuple containing the predictions and the weightning matrix
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
-
+    # Logistic Regression Model Fitting
+    logreg.fit(X_train, y_train)
+    if flag:
+        y_pred_log = logreg.predict_proba(X_test)
+    else:
+        y_pred_log = logreg.predict(X_test)
+    w_log = logreg.coef_
     # -------------------------------------------------------------------------
     return y_pred_log, w_log
 
@@ -83,7 +89,12 @@ def cv_kfold(X, y, C, penalty, K, mode):
             for train_idx, val_idx in kf.split(X, y):
                 x_train, x_val = X.iloc[train_idx], X.iloc[val_idx]
         # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
+                x_train_norm = nsd(x_train, selected_feat=('LB', 'ASTV'), mode=mode, flag=False)
+                x_val_norm = nsd(x_val, selected_feat=('LB', 'ASTV'), mode=mode, flag=False)
+                y_val_norm, w_norm_std = pred_log(logreg, x_train_norm, y[train_idx], x_val_norm, flag=True)
+                loss_val_vec[k] = log_loss(y[val_idx], y_val_norm)
 
+            validation_dict.append({'C': c, 'penalty': p, 'mu': np.mean(loss_val_vec), 'sigma': np.std(loss_val_vec)})
         # --------------------------------------------------------------------------
     return validation_dict
 
@@ -92,13 +103,24 @@ def odds_ratio(w, X, selected_feat='LB'):
     """
 
     :param w: the learned weights of the non normalized/standardized data
-    :param x: the set of the relevant features-patients data
+    :param X: the set of the relevant features-patients data
     :param selected_feat: the current feature
     :return: odds: median odds of all patients for the selected feature and label
              odds_ratio: the odds ratio of the selected feature and label
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
+    # Calculate odds ratio
+    all_odds_ratio = np.exp(w)
+    index = X.columns.get_loc(selected_feat)
+    odd_ratio = all_odds_ratio[0, index]
 
+    # Calculate odds of 'Normal'
+    multi = w.dot(np.transpose(np.array(X)))[0, :]  # Keep only the 'Normal' row
+    odds_list = np.zeros(len(multi))
+    for idx, elem in enumerate(multi):
+        prob = np.exp(elem)/(1 + np.exp(elem))
+        odd = prob/(1-prob)
+        odds_list[idx] = odd
+    odds = np.median(odds_list)
     # --------------------------------------------------------------------------
-
     return odds, odd_ratio

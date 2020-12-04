@@ -124,7 +124,7 @@ if __name__ == '__main__':
     #####################################
 
     feature = ''  # fill your chosen feature
-    thresh =   # fill the threshold
+    thresh = 10  # fill the threshold
     filt_feature = phpr(c_samp, feature, thresh)
 
     #####################################
